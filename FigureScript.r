@@ -777,7 +777,148 @@
                                         geom_point(size=5) + 
                                         ggtitle("Increasing similarity of Sessile to 100um fraction with OA (CCA)") +
                                         scale_color_lancet()
-    # BUNK - 5f. METABOLITES distinct proprtion
+
+    # 5f. holbiont distinctness for specific holobiomes -needs further metadata to map ARMS together
+
+               ps_list<-list()
+                    ps_holo100<-prune_samples( (sample_data(ps16ALLp)$Sample=="RVS" | sample_data(ps16ALLp)$Sample=="CS" | sample_data(ps16ALLp)$Sample=="100"  )  , ps16ALLp)
+                    ps_holo100 <-prune_taxa(taxa_sums(ps_holo100)>0, ps_holo100)
+
+                    ARMSwith100data<-unique(sample_data(ps_holo100)$ARMS [sample_data(ps_holo100)$Sample=="100"])
+                    samps<-levels(sample_data(ps_holo100)$Sample)
+                    for (ARMS in ARMSwith100data) {
+                        #get all same arms
+                        ps_ARMS<-prune_samples(sample_data(ps_holo100)$ARMS==ARMS, ps_holo100)
+                        ps_ARMS <-prune_taxa(taxa_sums(ps_ARMS)>0, ps_ARMS)
+                
+                        samps<-levels(sample_data(ps_ARMS)$Sample)
+                        for (samp in samps) {
+                            #get all same sample
+                            ps_samp<-prune_samples(sample_data( ps_ARMS)$Sample==samp, ps_ARMS)
+                            ps_samp<-prune_taxa(taxa_sums(ps_samp)>0, ps_samp)
+
+                            for (i in (1:length(sample_names(ps_samp)))) { #separate samples
+                            #get 1 ps per sample replicate  
+                                ps_singlesample<-prune_samples(sample_names( ps_samp)==sample_names( ps_samp)[i], ps_samp)
+                                pH<- sample_data(ps_singlesample)$pH
+
+                                ps_list[[ paste0(pH, "_", ARMS, "-", samp, "-", i) ]] <-prune_taxa(taxa_sums(ps_singlesample)>0, ps_singlesample)
+                            } 
+                        }
+                    }
+
+             ARMSnames<-unlist(lapply(str_split(names(ps_list), "-"), '[', 1))
+            sample_names<-unlist(lapply(str_split(names(ps_list), "-"), '[', 2))
+
+
+            ps_df<-data.frame(
+                       ps_names= names(ps_list),
+                       counter=NA,
+                       ARMSnames=ARMSnames,
+                       sample_names=sample_names
+            )
+            numComparisons=length(ARMSnames)-length(unique(ARMSnames)) #as there is 1 100 ARMS for each ARMS names 
+            SpecificHolobiontDistinctness<-data.frame(matrix(
+                                                            ncol= 5 ,
+                                                            nrow=numComparisons,
+                                                            dimnames=list(NULL,c("Individual_Holobiont","value", "ARMS", "pH", "site", shared))
+            ))
+            ControlSharedESVs<-list()
+            MediumSharedESVs<-list()
+            LowSharedESVs<-list()
+
+            SharedSeqs<-list()
+
+            counter<-0
+
+             for (ARMSname in unique(ARMSnames)) {
+                #ps_df$counter[startsWith(names(ps_list), ARMSname)]<-seq_along(startsWith(names(ps_list), ARMSname))
+                ARMSindex<-ps_df$ARMSnames==ARMSname
+                
+                ARMS_ps_list<-ps_list[ARMSindex]
+                ARMS_ps_df<-ps_df[ARMSindex,]
+                if( length(ARMS_ps_list)>1 ) {
+                    for (i in 2:length(names(ARMS_ps_list))) {
+                        counter<-counter+1
+                        SpecificHolobiontDistinctness$Individual_Holobiont[counter]<-as.character(sample_data(ARMS_ps_list[[i]])$Sample)
+                        SpecificHolobiontDistinctness$value[counter]<-sum((!taxa_names(ARMS_ps_list[[i]]) %in% taxa_names(ARMS_ps_list[[1]])))/length(taxa_names(ARMS_ps_list[[i]]))
+                        SpecificHolobiontDistinctness$ARMS[counter]<-as.character(sample_data(ARMS_ps_list[[1]])$ARMS[1])
+                        SpecificHolobiontDistinctness$pH[counter]<- as.character(sample_data(ARMS_ps_list[[1]])$pH[1])
+                        SpecificHolobiontDistinctness$site[counter]<-as.character(sample_data(ARMS_ps_list[[1]])$Site[1])
+
+                        if (as.character(sample_data(ARMS_ps_list[[1]])$pH[1]) == "A_Con") {
+                            ControlSharedESVs[[paste0(counter, as.character(sample_data(ARMS_ps_list[[1]])$pH[1]))]]<-taxa_names(ARMS_ps_list[[i]]) [ taxa_names(ARMS_ps_list[[i]]) %in% taxa_names(ARMS_ps_list[[1]]) ]
+                        }
+                        if (as.character(sample_data(ARMS_ps_list[[1]])$pH[1]) == "B_Med") {
+                            MediumSharedESVs[[paste0(counter, as.character(sample_data(ARMS_ps_list[[1]])$pH[1]))]]<-taxa_names(ARMS_ps_list[[i]]) [ taxa_names(ARMS_ps_list[[i]]) %in% taxa_names(ARMS_ps_list[[1]]) ]
+                        }
+                        else if (as.character(sample_data(ARMS_ps_list[[1]])$pH[1]) == "C_Low") {
+                            LowSharedESVs[[paste0(counter, as.character(sample_data(ARMS_ps_list[[1]])$pH[1]))]]<-taxa_names(ARMS_ps_list[[i]]) [ taxa_names(ARMS_ps_list[[i]]) %in% taxa_names(ARMS_ps_list[[1]]) ]
+                        }
+                    }
+                }
+             }
+
+
+
+                    ps_Con100<-prune_samples( (sample_data(ps16ALLp)$pH=="A_Con" & sample_data(ps16ALLp)$Sample=="100" )  , ps16ALLp)
+                    ps_Con100 <-prune_taxa(taxa_sums(ps_Con100)>0, ps_Con100)
+
+                    ps_ConSpecificHolobionts<-prune_samples( (sample_data(ps16ALLp)$pH=="A_Con" & (sample_data(ps16ALLp)$Sample=="RVS" | sample_data(ps16ALLp)$Sample=="CS" ) ) , ps16ALLp)
+                    ps_ConSpecificHolobionts <-prune_taxa(taxa_sums(ps_ConSpecificHolobionts)>0, ps_ConSpecificHolobionts)
+
+                    MeidumSharedNotControlShared<-unique(unlist(MediumSharedESVs)) [ ! unique(unlist(MediumSharedESVs)) %in% unique(unlist(ControlSharedESVs)) ]
+                    LowSharedNotControlShared<-unique(unlist(LowSharedESVs)) [ ! unique(unlist(LowSharedESVs)) %in% unique(unlist(ControlSharedESVs)) ]
+                
+                #key figures below: 70.8% and 73.8% of ESVs shared at medium and low pH but not shared at control were found in the environment at control. This increasing with dropping pH.
+                                #   36.6% and 29.8% of ESVs shared at medium and low pH but not shared at control were found in the specific holobionts at control. This decreasing with dropping pH.
+                                # has to be shown as %age as there are ot enough independent pH gradients  to statistically test for this effect
+                    sum(unique(unlist(MeidumSharedNotControlShared)) %in% taxa_names(ps_Con100) )/length(unique(unlist(MeidumSharedNotControlShared)))
+                    sum(unique(unlist(LowSharedNotControlShared)) %in% taxa_names(ps_Con100) )/length(unique(unlist(LowSharedNotControlShared)))
+                    sum(unique(unlist(MeidumSharedNotControlShared)) %in% taxa_names(ps_ConSpecificHolobionts) )/length(unique(unlist(MeidumSharedNotControlShared)))
+                    sum(unique(unlist(LowSharedNotControlShared)) %in% taxa_names(ps_ConSpecificHolobionts) )/length(unique(unlist(LowSharedNotControlShared)))
+
+
+        Figs[["SpecificHolobiontDistinctness"]] <- ggplot(SpecificHolobiontDistinctness)+
+                                            geom_hline(yintercept=0.5, linetype='dotted')+
+                                            #geom_violin(aes(x=pH, y=value, fill=Individual_Holobiont)) +
+                                            geom_boxplot(aes(x=pH, y=value,fill=Individual_Holobiont))  +
+                                            labs(   title="FIGURE X: Individual Holobiont Microbiome Distinctness - i.e. percentage of Hhlobiont microbiome richness not shared between the environmental microbiome and the individual holobiont microbiome",
+                                                    subtitle="",
+                                                    y="Percentage of community richness distinct to holobiont microbiome", x="pH Regime (control n=18, medium n=9, low n=16)") +
+                                            scale_color_futurama() +
+                                            scale_fill_futurama() +
+                                            annotate("segment", x = 1, xend = 2, y = 0.55, yend = 0.55, colour = "black", size=1, alpha=1) +
+                                            annotate("text", x = 1.5, y = 0.5525, size=7, label = "**") +
+                                            annotate("segment", x = 1, xend = 3, y = 0.56, yend =0.56, colour = "black", size=1, alpha=1) +
+                                            annotate("text", x = 2, y = 0.5625, size=7, label = "**")
+
+
+          #run GLMM
+                SpecificHolobiontDistinctness$pH<-ordered(SpecificHolobiontDistinctness$pH, levels = c("A_Con", "B_Med", "C_Low"))
+
+
+                Stats[[paste0("pH")]]<-lmer(data = SpecificHolobiontDistinctness, formula=value ~ pH + (1|site/ARMS) + (1|Individual_Holobiont) )
+                Stats[[paste0("nopH")]]<-lmer(data = SpecificHolobiontDistinctness, formula=value ~ (1|site/ARMS) + (1|Individual_Holobiont) )
+
+                plot(density(SpecificHolobiontDistinctness$value, na.rm=TRUE))
+
+                qqnorm(residuals(Stats[["pH"]]))
+                scatter.smooth(residuals(Stats[["pH"]]) ~ fitted(Stats[["pH"]]))
+                qqnorm(residuals(Stats[["nopH"]]))
+                scatter.smooth(residuals(Stats[["nopH"]]) ~ fitted(Stats[["nopH"]]))
+                #assumptions look good with poisson distribution (makes sense given count data)
+
+                anova(Stats[["pH"]], Stats[["nopH"]])
+                    #significant efefct of pH:sample
+                confs<-confint(Stats[["pH"]])
+                    # pH confints do not cross zero for all samples
+                summary(Stats[["pH"]])
+
+                r.squaredGLMM(Stats[["pH"]])
+
+
+    # BUNK - 5g. METABOLITES distinct proprtion
 
 
 
@@ -871,7 +1012,7 @@
 
 
 
-    # BUNK - 5g. additional ratios - potentially for SI
+    # BUNK - 5h. additional ratios - potentially for SI
 
                 OverlapByArms<-list(
                     "holobiont distinct seqs as proportion of free-living"=data.frame(
@@ -989,7 +1130,7 @@
    
    
    
-    # BUNK - 5h. explorations with algal data - but as subset of ARMS have all three data types this reduces samplesize - nto worth it
+    # BUNK - 5i. explorations with algal data - but as subset of ARMS have all three data types this reduces samplesize - nto worth it
 
         #by arms unit
                 ps_list<-list()
@@ -1310,7 +1451,7 @@
             
 
 
-    # BUNK - 5i. these plots attempting to show increasing compositional similarity between specific holobionts and the overall environemtnal fraction
+    # BUNK - 5j. these plots attempting to show increasing compositional similarity between specific holobionts and the overall environemtnal fraction
         #do not show anything
                     ps16p_RVS<-prune_samples(sample_data(ps16ALLp)$Sample=="RVS" | sample_data(ps16ALLp)$Sample=="100", ps16ALLp)
                     ps16p_RVS<-prune_taxa(taxa_sums(ps16p_RVS)>0,ps16p_RVS)
@@ -1334,12 +1475,8 @@
 
 
 
-    # NOT STARTED 5j. holbiont distinctness for specific holobiomes -needs further metadata to map ARMS together
-               ps_list<-list()
-                    ps_s100<-prune_samples( (sample_data(ps16ALLp)$Sample=="RVS" | sample_data(ps16ALLp)$Sample=="CS" | sample_data(ps16ALLp)$Sample=="Sessile"  )  , ps16ALLp)
-                    #havent gone past here as we don't have ARMS codes for the songe samples yet
-                    #when we get them copy in from examples above
- 
+
+
 # 6. Taxa barplots
     #create informative taxa barplot for 23s using top 7 rank 4s
     #this is per arms unit
@@ -1662,3 +1799,5 @@
             grid.arrange(grobs=list(Figs[["AlgalClasses"]],  Figs[["BacterialClasses"]],  Figs[["100-BacterialClasses"]],
                                     Figs[["GammaproteobacteriaFamilies"]], Figs[["BacteroidiaFamilies"]]), 
                         ncol=3)
+        #individual holoniotn distinctness
+            Figs[["SpecificHolobiontDistinctness"]]
