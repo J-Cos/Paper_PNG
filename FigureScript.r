@@ -37,12 +37,14 @@
                 metadata_16s<-sample_data(read.table(file=file.path(path, "Data", "16s_metadata.csv"), sep=",", header=TRUE, row.names=1))
                 ps16<-SeqDataTable2Phyloseq( SeqDataTablePath=file.path(path, "Data", "PNGFullTest_16s_SeqDataTable.RDS"),
                                             clustering="ESV",
+                                            assignment="Idtaxa",
                                             Metadata=metadata_16s)
 
             #23s
                 metadata_23s<-sample_data(read.table(file=file.path(path, "Data", "23s_metadata.csv"), sep=",", header=TRUE, row.names=1))
                 ps23<-SeqDataTable2Phyloseq( SeqDataTablePath=file.path(path, "Data", "PNGFullTest_23s_SeqDataTable.RDS"),
                                             clustering="ESV",
+                                            assignment="Idtaxa",
                                             Metadata=metadata_23s)
         
         #remove additional 16s samples we don't want to use
@@ -778,7 +780,7 @@
                                         ggtitle("Increasing similarity of Sessile to 100um fraction with OA (CCA)") +
                                         scale_color_lancet()
 
-    # 5f. holbiont distinctness for specific holobiomes -needs further metadata to map ARMS together
+    # 5f. holbiont distinctness for specific holobiomes 
 
                ps_list<-list()
                     ps_holo100<-prune_samples( (sample_data(ps16ALLp)$Sample=="RVS" | sample_data(ps16ALLp)$Sample=="CS" | sample_data(ps16ALLp)$Sample=="100"  )  , ps16ALLp)
@@ -821,7 +823,7 @@
             SpecificHolobiontDistinctness<-data.frame(matrix(
                                                             ncol= 5 ,
                                                             nrow=numComparisons,
-                                                            dimnames=list(NULL,c("Individual_Holobiont","value", "ARMS", "pH", "site", shared))
+                                                            dimnames=list(NULL,c("Individual_Holobiont","value", "ARMS", "pH", "site"))
             ))
             ControlSharedESVs<-list()
             MediumSharedESVs<-list()
@@ -883,8 +885,8 @@
                                             geom_hline(yintercept=0.5, linetype='dotted')+
                                             #geom_violin(aes(x=pH, y=value, fill=Individual_Holobiont)) +
                                             geom_boxplot(aes(x=pH, y=value,fill=Individual_Holobiont))  +
-                                            labs(   title="FIGURE X: Individual Holobiont Microbiome Distinctness - i.e. percentage of Hhlobiont microbiome richness not shared between the environmental microbiome and the individual holobiont microbiome",
-                                                    subtitle="",
+                                            labs(   title="FIGURE S6: Individual Holobiont Microbiome Distinctness - i.e. percentage of Holobiont microbiome richness not shared between the environmental microbiome and the individual holobiont microbiome",
+                                                    subtitle="CS=Halisarca sp.; RVS=Tethys sp.",
                                                     y="Percentage of community richness distinct to holobiont microbiome", x="pH Regime (control n=18, medium n=9, low n=16)") +
                                             scale_color_futurama() +
                                             scale_fill_futurama() +
@@ -1767,6 +1769,13 @@
 
 # 8. plot
 
+pdf(file = "/home/j/Desktop/Figures.pdf", width=20, height =8 ) # The height of the plot in inches        
+
+text(5, 8, "Data-generated Figures")
+text(5, 7, "Jake Williams-- 30 March 2022")
+text(5, 2, "Supplementary pdf duplicating all data generated figures from the draft manuscript.")
+
+
     #Mains figures
         #Figure1
             grid.arrange(grobs = list(Figs[["Figure1a"]], Figs[["Figure1b"]]), ncol = 2) ## display plot
@@ -1801,3 +1810,5 @@
                         ncol=3)
         #individual holoniotn distinctness
             Figs[["SpecificHolobiontDistinctness"]]
+
+    dev.off()
