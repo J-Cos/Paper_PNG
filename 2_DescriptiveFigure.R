@@ -1,10 +1,12 @@
 # 1. Packages and path to project directory ######
     set.seed(0.1)
     
+    library(phyloseq)
     library(tidyverse)
     library(ggplot2)
     library(treemapify)
     library(viridis)
+
 
     library(breakaway)
     
@@ -14,20 +16,20 @@
         minText<-1 #min size of text in treemaps
 
     #1.1 load functions
-    #funcs
+    #funHalisarca Sponge Microbiome
     function_files<-list.files(file.path(path, "Functions"))
     sapply(file.path(path, "Functions",function_files),source)
     
 # 2. Load Data
     #16s
-    ps16<-readRDS(file=file.path(path, "Outputs", "ps16.RDS"))
+    ps16<-readRDS(file=file.path(path, "Outputs", "ps16.RDS")) %>% prune_taxa( as.data.frame(tax_table(.) )$Rank_5!="Chloroplast", .)
     #23s
     ps23<-readRDS(file=file.path(path, "Outputs", "ps23.RDS"))
 
 #2) Mkae visuals of estimate slpha diversity
                     #ensure all samples have x seqs and all taxa have >0 (all 23s already do)
                         ps16<-prune_samples( sample_sums(ps16)>100000, ps16)
-                        ps16<-prune_samples(sample_data(ps16)$pH %in% c("Con", "Med", "Low"), ps16)
+                        ps16<-prune_samples(sample_data(ps16)$pH %in% c("Control pH", "Medium pH", "Low pH"), ps16)
                         ps23<-prune_samples( sample_sums(ps23)>100000, ps23)
 
                         #ps16<-prune_samples( sample_data(ps16)$ARMS %in% sample_data(ps23)$ARMS, ps16)
@@ -39,7 +41,7 @@
             completeARMS<-sample_data(ps16) %>% 
                         as_tibble %>%
                         #mutate_if(is.character, as.factor) %>%
-                        filter(!Sample %in% c("RVS", "CS")) %>%
+                        filter(!Sample %in% c("Tethys Sponge Microbiome", "Halisarca Sponge Microbiome")) %>%
                         group_by(ARMS, pH, Site) %>%
                         summarise(n=n()) %>%
                         filter(n>2) 
@@ -69,7 +71,7 @@
         Richness16<-GetBreakawayRichness(ps16m)
 
         boxplotsARMS<-Richness16 %>%
-                    mutate  (pH=factor(pH, order = TRUE,  levels = c("Low", "Med", "Con")) )  %>%
+                    mutate  (pH=factor(pH, order = TRUE,  levels = c("Low pH", "Medium pH", "Control pH")) )  %>%
                     ggplot(aes(x=estimate, y=pH)) +
                         geom_violin(fill="black") +
                         geom_boxplot(width=0.1, color="grey", fill="grey", alpha=0.5) +
@@ -78,21 +80,21 @@
                     theme(  strip.background = element_rect(fill = "white"),
                             #panel.border = element_blank(),
                             strip.text = element_text( color="black", face="bold"),
-                            axis.text.x = element_text(face="bold", size=14, angle=0, hjust=0.5),
+                            axis.text.x = element_text(face="bold", size=8, angle=0, hjust=0.5),
                             axis.text.y = element_blank(),
-                            axis.title.x = element_text(face="bold"),
+                            axis.title.x = element_text(face="bold", size=8, angle=0, hjust=0.5),
                             axis.title.y = element_blank(),
                             plot.title = element_text(size = 20, face = "bold", hjust=0.5),
                             panel.grid.major = element_blank(),
                             panel.grid.minor = element_blank(),
                             panel.background = element_blank(), 
                             axis.line = element_line(colour = "black"))+
-                    labs(x = "Whole ARMS estimated \n bacterial sequence richness")
+                    labs(x = "Whole ARMS estimated \n bacterial ESV richness")
 
 #23s richness
         Richness23<-GetBreakawayRichness(ps23)
         boxplotsAlg<-Richness23 %>%
-                    mutate  (pH=factor(pH, order = TRUE,  levels = c("Low", "Med", "Con")) )  %>%
+                    mutate  (pH=factor(pH, order = TRUE,  levels = c("Low pH", "Medium pH", "Control pH")) )  %>%
                     ggplot(aes(x=estimate, y=pH)) +
                         geom_violin(fill="black") +
                         geom_boxplot(width=0.1, color="grey", fill="grey", alpha=0.5) +
@@ -101,25 +103,25 @@
                     theme(  strip.background = element_rect(fill = "white"),
                             #panel.border = element_blank(),
                             strip.text = element_text(color="black", face="bold"),
-                            axis.text.x = element_text(face="bold", size=14, angle=0, hjust=0.5),
+                            axis.text.x = element_text(face="bold", size=8, angle=0, hjust=0.5),
                             axis.text.y = element_blank(),
-                            axis.title.x = element_text(face="bold"),
+                            axis.title.x = element_text(face="bold", size=8, angle=0, hjust=0.5),
                             axis.title.y = element_blank(),
                             plot.title = element_text(size = 20, face = "bold", hjust=0.5),
                             panel.grid.major = element_blank(),
                             panel.grid.minor = element_blank(),
                             panel.background = element_blank(), 
                             axis.line = element_line(colour = "black"))+
-                    labs(x = "Top plate estimated algae \n (23s) sequence richness")
+                    labs(x = "Photosynthetic community estimated \n algae (23s) sequence richness")
 
 
 #sponge richness
-ps16sponges<-prune_samples(sample_data(ps16)$Sample %in% c("RVS", "CS"), ps16)
+ps16sponges<-prune_samples(sample_data(ps16)$Sample %in% c("Tethys Sponge Microbiome", "Halisarca Sponge Microbiome"), ps16)
             ps16sponges<- prune_taxa( taxa_sums(ps16sponges)>0, ps16sponges)
 
         RichnessSponges<-GetBreakawayRichness(ps16sponges)
         boxplotsSponge<-RichnessSponges %>%
-                    mutate  (pH=factor(pH, order = TRUE,  levels = c("Low", "Med", "Con")) )  %>%
+                    mutate  (pH=factor(pH, order = TRUE,  levels = c("Low pH", "Medium pH", "Control pH")) )  %>%
                     ggplot(aes(x=estimate, y=pH)) +
                         geom_violin(fill="black") +
                         geom_boxplot(width=0.1, color="grey", fill="grey", alpha=0.5) +
@@ -128,21 +130,22 @@ ps16sponges<-prune_samples(sample_data(ps16)$Sample %in% c("RVS", "CS"), ps16)
                         scale_y_discrete(labels = c('Low pH','Medium pH','Control pH'), position = "right") +
                     theme(  strip.background = element_rect(fill = "white"),
                             strip.text = element_text(color="black", face="bold"),
-                            axis.text = element_text(face="bold", size=14, angle=0, hjust=0.5),
-                            axis.title.x = element_text(face="bold"),
+                            axis.text.y = element_text(face="bold", size=12, angle=0, hjust=0.5),
+                            axis.text.x = element_text(face="bold", size=8, angle=0, hjust=0.5),
+                            axis.title.x = element_text(face="bold", size=8, angle=0, hjust=0.5),
                             axis.title.y = element_blank(),
                             plot.title = element_text(size = 20, face = "bold", hjust=0.5),
                             panel.grid.major = element_blank(),
                             panel.grid.minor = element_blank(),
                             panel.background = element_blank(), 
                             axis.line = element_line(colour = "black"))+
-                    labs(x = "Sponge estimated bacterial \n sequence richness")
+                    labs(x = "Sponge estimated \n bacterial ESV richness")
 
       
     #testing signif        
 
     Richness16 %>%
-        #mutate  (pH=factor(pH, order = TRUE,  levels = c("Con", "Med", "Low")) ) %>%
+        #mutate  (pH=factor(pH, order = TRUE,  levels = c("Control pH", "Medium pH", "Low pH")) ) %>%
         #summarise(estimate=estimate, cumul_score=cumul_score, Site_Longitude=Site_Longitude, Site_Latitude=Site_Latitude, Year=Year, Island=Island, Region=Region , Fraction=Fraction,FIY=as.factor(paste0(Fraction)), error=error) %>%
         betta_random(formula = estimate ~ pH *Sample + (1|Site), ses = error, data=.) %>%
         '['("table")
@@ -179,8 +182,7 @@ ps16sponges<-prune_samples(sample_data(ps16)$Sample %in% c("RVS", "CS"), ps16)
             return(sdm)
         }
 
-        #ps23m<-merge_samples(ps23, as.factor(paste0(sample_data(ps23)$Site, sample_data(ps23)$pH)))
-        ps23m<-merge_samples(ps23, "pH")
+        ps23m<-merge_samples(ps23, as.character( sample_data(ps23)$pH))
         sample_data(ps23m)<-GetGroupedSampleData(ps23)
 
         #ps16m<-merge_samples(ps16, as.factor(paste0(sample_data(ps16)$Site, sample_data(ps16)$pH, sample_data(ps16)$Sample)))
@@ -201,61 +203,61 @@ ps16sponges<-prune_samples(sample_data(ps16)$Sample %in% c("RVS", "CS"), ps16)
 
     treemaps16s<-    p$data %>%
             rbind(p23$data) %>% 
-            mutate(pH = fct_relevel(pH, c("Con", "Med", "Low"))) %>%
-            filter(sample_Sample %in% c("100", "Sessile", "Algae")) %>%
+            mutate(pH = fct_relevel(pH, c("Control pH", "Medium pH", "Low pH"))) %>%
+            filter(sample_Sample %in% c("Environmental Microbiome", "Holobiont Community Microbiome", "Photosynthetic Community Microbiome")) %>%
+            mutate(sample_Sample=fct_relevel(sample_Sample,c("Photosynthetic Community Microbiome", "Environmental Microbiome", "Holobiont Community Microbiome") )) %>%
             ggplot(aes(area = Abundance, fill = Rank_3,
                     label = Rank_4, subgroup=Rank_3)) +
                 geom_treemap() +
                 geom_treemap_text(alpha = 0.25, colour = "black", place = "centre",
                                 size = 15, grow = TRUE, min.size=minText) +
-                #facet_grid(pH~Site+sample_Sample)+
-                facet_grid(pH~sample_Sample, labeller = labeller(sample_Sample = 
-                                                    c(  "100" = "100-500 micron Motile",
-                                                        "Sessile" = "Internal Plates Sessile",
-                                                        "Algae" = "Top Plate Sessile" ))) +
+                facet_grid(pH~sample_Sample,  labeller = labeller(sample_Sample = 
+                                                    c( "Environmental Microbiome"="Environmental\nMicrobiome\n", 
+                                                    "Holobiont Community Microbiome"= "Holobiont\nCommunity\nMicrobiome", 
+                                                    "Photosynthetic Community Microbiome"="Photosynthetic\nCommunity\nMicrobiome")), 
+                                                    switch="y") +
                 theme(legend.position="none")+
                 geom_treemap_subgroup_text(place = "centre", grow = TRUE,
                                     colour = "white",
                                     fontface = "italic", angle=45, min.size=minText )+
                 scale_fill_viridis(option="turbo", discrete=TRUE)+
                 theme(  strip.background = element_blank(),
-                        strip.text.y =  element_blank(),
-                        strip.text.x = element_text(color="black", face="bold"))
+                        strip.text.y.left =  element_text(color="black", face="bold", size=20),
+                        strip.text.x = element_text(color="black", face="bold", size=20))
 
     treemaps23s<-    p$data %>%
             rbind(p23$data) %>% 
-            mutate(pH = fct_relevel(pH, c("Con", "Med", "Low"))) %>%
-            filter(sample_Sample %in% c("Algae_23s")) %>%
+            mutate(pH = fct_relevel(pH, c("Control pH", "Medium pH", "Low pH"))) %>%
+            filter(sample_Sample %in% c("Photosynthetic Community Algae")) %>%
             ggplot(aes(area = Abundance, fill = Rank_3,
                     label = Rank_4, subgroup=Rank_3)) +
                 geom_treemap() +
                 geom_treemap_text(alpha = 0.25, colour = "black", place = "centre",
                                 size = 15, grow = TRUE, min.size=minText) +
-                #facet_grid(pH~Site+sample_Sample)+
                 facet_grid(pH~sample_Sample, labeller = labeller(sample_Sample = 
-                                                    c("Algae_23s" = "Top Plate Sessile 23s (Algae)"))) +
+                                                    c( "Photosynthetic Community Algae"="Photosynthetic\nCommunity\n")),
+                                                    switch="y") +
                 theme(legend.position="none")+
                 geom_treemap_subgroup_text(place = "centre", grow = TRUE,
                                     colour = "white",
                                     fontface = "italic", angle=45, min.size=minText ) +
                 scale_fill_viridis(discrete=TRUE) +
                 theme(  strip.background = element_blank(),
-                        strip.text.y =  element_blank(),
-                        strip.text.x = element_text(color="black", face="bold"))
+                        strip.text.y.left =  element_text(color="black", face="bold", size=20),
+                        strip.text.x = element_text(color="black", face="bold", size=20))
 
     treemapsSponges<-    p$data %>%
             rbind(p23$data) %>% 
-            mutate(pH = fct_relevel(pH, c("Con", "Med", "Low"))) %>%
-            filter(sample_Sample %in% c("RVS", "CS")) %>%
+            mutate(pH = fct_relevel(pH, c("Control pH", "Medium pH", "Low pH"))) %>%
+            filter(sample_Sample %in% c("Tethys Sponge Microbiome", "Halisarca Sponge Microbiome")) %>%
             ggplot(aes(area = Abundance, fill = Rank_3,
                     label = Rank_4, subgroup=Rank_3)) +
                 geom_treemap() +
                 geom_treemap_text(alpha = 0.25, colour = "black", place = "centre",
                                 size = 15, grow = TRUE, min.size=minText) +
-                #facet_grid(pH~Site+sample_Sample)+
                 facet_grid(pH~sample_Sample, labeller = labeller(sample_Sample = 
-                                                    c(  "RVS" = "Tethys Sp. Sponge",
-                                                        "CS" = "Halisarca Sp. Sponge"))) +
+                                                    c(  "Tethys Sponge Microbiome" = "Tethya\nSponge\nMicrobiome",
+                                                        "Halisarca Sponge Microbiome" = "Halisarca\nSponge\nMicrobiome"))) +
                 theme(legend.position="none")+
                 geom_treemap_subgroup_text(place = "centre", grow = TRUE,
                                     colour = "white",
@@ -263,10 +265,20 @@ ps16sponges<-prune_samples(sample_data(ps16)$Sample %in% c("RVS", "CS"), ps16)
                 scale_fill_viridis(option="turbo", discrete=TRUE)+
                 theme(  strip.background = element_blank(),
                         strip.text.y =  element_blank(),
-                        strip.text.x = element_text( color="black", face="bold"))
+                        strip.text.x = element_text( color="black", face="bold", size=20))
 
 
 #arranging!!
+#DescriptiveFigure<-egg::ggarrange(treemaps16s, boxplotsARMS,treemaps23s,boxplotsAlg, treemapsSponges,boxplotsSponge, widths = c(3,1, 1,1, 2,1),
+#                                    top="Figure 3: Descriptive Figure of Metabarcoding Fraction Compositions and Estimated Richnesses")
+DescriptiveFigure<-egg::ggarrange(#treemaps23s, 
+                                    treemaps16s, treemapsSponges, widths = c(3, 2),
+                                    #top="Figure 3: Descriptive Figure of Metabarcoding Fraction Compositions", 
+                                    labels=c())
+#theme(plot.margin = margin(0.1,0.1,2,0.1, "cm")) 
+    jpeg(file=file.path(path, "Fig3.jpeg"), height = 8.3, width = 13, units = 'in', res = 300)
+        DescriptiveFigure
+    dev.off()
 
 pdf(file = file.path(path,"Figs",paste0("DescriptiveFigure",Sys.Date(),".pdf")), width=20, height =8 ) # The height of the plot in inches        
 
@@ -274,76 +286,11 @@ pdf(file = file.path(path,"Figs",paste0("DescriptiveFigure",Sys.Date(),".pdf")),
 plot(0:10, type = "n", xaxt="n", yaxt="n", bty="n", xlab = "", ylab = "")
 text(5, 8, "Description of an ARMS Data Set: Papua New Guinea - Ocean Acidification ")
 text(5, 7, "Data is aggregated across biological replicates to present the community composition of 'representative ARMS plates' (and analgous communities where a fraction 
-            does not map exactly onto a single ARMS plate). A representative ARMS plate is presented for each treatment level, showing Phyla (in white text) and Class (in grey text).
-            Estimated community richness (Willis, Bunge and Whitman, 2017) is presented for each treatment level, with ARMS plates aggregated to produce richness estimates
-            for whole ARMS.")
+            does not map exactly onto a single ARMS plate). A representative ARMS plate is presented for each treatment level, showing Phyla (in white text) and Class (in grey text).")
+            #Estimated community richness (Willis, Bunge and Whitman, 2017) is presented for each treatment level, with ARMS plates aggregated to produce richness estimates
+            #for whole ARMS.")
 text(5, 6, paste0("Jake Williams   ", Sys.Date()))
-
-fullPlot<-egg::ggarrange(treemaps16s, boxplotsARMS,treemaps23s,boxplotsAlg, treemapsSponges,boxplotsSponge, widths = c(3,1, 1,1, 2,1)) +
-                theme(plot.margin = margin(0.1,0.1,2,0.1, "cm")) 
-
+DescriptiveFigure
 
 dev.off()
 
-
-
-
-
-
-
-
-
-
-
-
-
-# voronoi treemap
-library(WeightedTreemaps)
-
- spongeTreemapData<-p$data %>%
-            rbind(p23$data) %>% 
-            mutate(pH = fct_relevel(pH, c("Con", "Med", "Low"))) %>%
-            filter(sample_Sample %in% c("RVS", "CS")) %>%
-            filter(Abundance>0)
-
-tm<-list()
-for (samp in c("ConRVS", "ConCS", "MedRVS", "MedCS", "LowRVS", "LowCS")) {
-    
-    tm[[samp]]<-p$data %>%
-            rbind(p23$data) %>% 
-            mutate(pH = fct_relevel(pH, c("Con", "Med", "Low"))) %>%
-            filter(sample_Sample %in% c("RVS", "CS")) %>%
-            filter(Abundance>0) %>%
-            filter(Sample==samp) %>%
-            WeightedTreemaps::voronoiTreemap( data = ., 
-                            levels = c("Rank_3", "Rank_4"), 
-                            cell_size="Abundance", 
-                            shape = "circle",
-                            filter=0.0001,
-                            error_tol = 0.2,
-                            positioning = c("regular", "clustered_by_area"),
-                            maxIteration = 1000,
-                            seed = 0.7,
-                            verbose=TRUE)      
-}
-
-lapply(1:length(tm), function(i) {
-  
-  WeightedTreemaps::drawTreemap(
-    tm[[i]],
-    color_level = 1,
-    custom_range = c(0, 0.05),
-    border_level=NULL,
-    #border_size = 6,
-    #border_color = grey(0.9),
-    label_level = c(1,2),
-    label_size = 1.5,
-    label_color = c("black", "white"),
-    layout = c(3, 2),
-    position = c(
-        if(i <= 2){1} else if(i>2 &i<=4){2} else{3},
-        if(i <= 2){i} else if(i>2 &i<=4){i-2} else{i-4}),
-    add = ifelse(i == 1, FALSE, TRUE)
-  )
-  
-}) %>% invisible

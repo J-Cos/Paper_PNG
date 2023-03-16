@@ -37,7 +37,7 @@
                 #remove water and uncertains
                     ps16<-subset_samples(ps16, !is.na(Site))
                 #ensure all samples have x seqs and all taxa have >0 (all 23s already do)
-                    ps16<-prune_samples( sample_sums(ps16)>50000, ps16)
+                    ps16<-prune_samples( sample_sums(ps16)>73000, ps16)
                     ps16<-prune_samples( !sample_names(ps16)%in% c("Algae_Con_Dobu_103", "Algae_Low_Dobu_97", "Algae_Med_Dobu_91", "Algae_Con_Illi_219"), ps16)  #removing lower read count duplicate sequencing of same arms plate            
                     ps16<- prune_taxa( taxa_sums(ps16)>0, ps16)
 

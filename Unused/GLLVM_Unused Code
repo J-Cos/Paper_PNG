@@ -1,0 +1,418 @@
+# 1. Packages and path to project directory ######
+    set.seed(0.1)
+    
+    library(tidyverse)
+    library(ggplot2)
+    library(phyloseq)
+    library(breakaway)
+    library(DivNet)
+
+    library(permute)
+    library(vegan)
+    library(DESeq2)
+
+    #params
+        path<-"/home/j/Dropbox/PNG_Paper" #provide the path to the project folder
+        theme_set(theme_linedraw())
+        Figs<-list()
+        Stats<-list()
+        options(scipen=999)
+
+
+# X. Create a custom color scale
+    myColors<- c("darkred", "darkturquoise", "chartreuse", "deeppink", "darkgoldenrod1")
+    names(myColors) <- c("Holobiont Community Microbiome", "Environmental Microbiome", "Photosynthetic Community Microbiome", "Halisarca Sponge Microbiome.", "Tethys Sponge Microbiome")
+    colScale <- scale_colour_manual(name = "Fraction",values = myColors)
+    fillScale <- scale_fill_manual(name = "Fraction",values = myColors)
+
+    myColors_individOnly<-myColors[4:5]
+    colScale_individOnly <- scale_colour_manual(name = "Fraction",values = myColors_individOnly)
+    fillScale_individOnly <- scale_fill_manual(name = "Fraction",values = myColors_individOnly)
+
+    pHColors<- c("green", "yellow", "orange")
+    names(pHColors) <- c("Control pH", "Medium pH", "Low pH")
+    pHcolScale <- scale_colour_manual(name = "pH Regime",values = pHColors)
+    pHfillScale <- scale_fill_manual(name = "pH Regime",values = pHColors)
+
+
+
+    #1.1 load functions
+    #funcs
+    function_files<-list.files(file.path(path, "Functions"))
+    sapply(file.path(path, "Functions",function_files),source)
+    
+    function_files<-list.files(file.path("/home/j/Dropbox/BioinformaticPipeline_Env/BioinformaticPipeline/SupportFunctions"))
+    sapply(file.path("/home/j/Dropbox/BioinformaticPipeline_Env/BioinformaticPipeline/SupportFunctions",function_files),source)
+
+    GetProportionEsvsAssigned<-function(ps, Rank, UnclassifiedLabels){
+        tax_table(ps)%>% 
+            as.data.frame %>% 
+            select(Rank) %>% 
+            filter(! .[[Rank]]  %in% UnclassifiedLabels ) %>%
+            dim %>%
+            '['(1) %>%
+            '/'(length(taxa_names(ps)))*100
+    }
+    GetProportionReadsAssignedAtPhyla<-function(ps, UnclassifiedLabels){
+        ps %>%
+            prune_taxa(!tax_table(.)[,3] %in% UnclassifiedLabels, .) %>%
+            sample_sums(.) %>%
+            sum %>%
+            '/' (sum(sample_sums(ps)))*100
+    }
+    GetProportionCompoundsWithSpectrumID<-function(ps){
+        tax_table(ps)%>% 
+            as.data.frame %>% 
+            select(SpectrumID) %>% 
+            filter(! .[["SpectrumID"]]  %in% c("Unclassified") ) %>%
+            dim %>%
+            '['(1) %>%
+            '/'(length(taxa_names(ps)))*100
+    }
+    GetProportionMoleculesWithSpectrumID<-function(ps){
+        ps %>%
+            prune_taxa(!tax_table(.)[,2] %in% c("Unclassified"), .) %>%
+            sample_sums(.) %>%
+            sum %>%
+            '/' (sum(sample_sums(ps)))*100
+    }
+    MakeTableColumnForOneMetabarcodingFraction<-function(ps, UnclassifiedLabels, multiSample=FALSE) {
+        #pre calculate results for rate limiting calculations
+            ps_phyla<-tax_glom(ps, taxrank="Rank_3")
+            alphaEstimates<-ps %>% breakaway %>% summary %>% '['("estimate") %>%unlist  
+            if (multiSample){
+                shannonEstimates<-ps_phyla %>% DivNet::divnet(., formula = ~Sample +Sample:pH + Site) %>%'['("shannon") %>% unlist(recursive=FALSE) %>%lapply(., '[', "estimate") %>% unlist %>% as.vector
+            } else {
+                shannonEstimates<-ps_phyla %>% DivNet::divnet(., formula = ~pH + Site) %>%'['("shannon") %>% unlist(recursive=FALSE) %>%lapply(., '[', "estimate") %>% unlist %>% as.vector
+            }
+        #create column
+            column<-c(
+                        paste0( # num samples and per pH level
+                            nsamples(ps), 
+                            " ",
+                            table(sample_data(ps)$pH)[c(1,3,2)] %>%as.vector %>%paste(collapse=";") %>% paste0("(", ., ")")
+                        ),
+                        paste0( # average EVSs
+                            median(colSums(otu_table(ps)>0))%>% format(big.mark=","),
+                            " (",
+                            mean(colSums(otu_table(ps)>0))%>% round %>% format(big.mark=","),
+                            ")"
+                        ),
+                        paste0( # average reads
+                            median(sample_sums(ps))%>% format(big.mark=","),
+                            " (",
+                            mean(sample_sums(ps))%>% round %>% format(big.mark=","),
+                            ")"
+                        ),
+                        paste0( # percent identiifieds
+                            GetProportionEsvsAssigned(ps=ps, Rank="Rank_3", UnclassifiedLabels=UnclassifiedLabels) %>% signif (3),
+                            " (",
+                            GetProportionReadsAssignedAtPhyla(ps=ps,  UnclassifiedLabels=UnclassifiedLabels)%>% signif (3),
+                            ")"
+                        ),
+                        paste0( # number phyla occuring
+                            ps_phyla%>% otu_table %>% as("matrix") %>% '>'(1) %>% colSums %>% median,
+                            " (", 
+                            ps_phyla %>% otu_table %>% as("matrix") %>% '>'(1) %>% colSums %>% mean %>% signif (3),
+                            ")"
+                        ),
+                        paste0( # average richenss
+                            alphaEstimates %>% median%>% round %>% format(big.mark=","),
+                            " (",
+                            alphaEstimates %>% mean%>% round %>% format(big.mark=","),
+                            ")"
+                        ),
+                        paste0( # average shannon
+                            shannonEstimates %>% median%>% signif (3),
+                            " (",
+                            shannonEstimates %>% mean%>% signif (3),
+                            ")"
+                        )
+                    )
+        return(column)
+    }
+    MakeTableColumnForOneMetabolomicFraction<-function(ps, multiSample=FALSE) {
+        #pre calculate results for rate limiting calculations
+            ps<-ps%>% transform_sample_counts(., function(x) floor(x))     
+            #not usign breakaway as the structure of metabolomic data is different to genetic and does not make sense to use same statistical estiamtion approach
+            alphaEstimates<-estimate_richness(ps, measures=c("Observed")) %>% unlist 
+            shannonEstimates<-estimate_richness(ps, measures=c("Shannon")) %>% unlist
+
+        #create column
+            column<-c(
+                        paste0( # num samples and per pH level
+                            nsamples(ps), 
+                            " ",
+                            table(sample_data(ps)$pH)[c(1,3,2)] %>%as.vector %>%paste(collapse=";") %>% paste0("(", ., ")")
+                        ),
+                        paste0( # average EVSs
+                            median(colSums(otu_table(ps)>0))%>% format(big.mark=","), 
+                            " (",
+                            mean(colSums(otu_table(ps)>0))%>% round %>% format(big.mark=","),
+                            ")"
+                        ),
+                        paste0( # average reads
+                            median(sample_sums(ps))%>%  format(big.mark=","), 
+                            " (",
+                            mean(sample_sums(ps))%>% round %>% format(big.mark=","),
+                            ")"
+                        ),
+                        paste0( # percent identifieds
+                            GetProportionCompoundsWithSpectrumID(ps) %>% signif (3),
+                            " (",
+                            GetProportionMoleculesWithSpectrumID(ps)%>% signif (3),
+                            ")"
+                        ),
+                        paste0( # number phyla occuring
+                            "NA"
+                        ),
+                        paste0( # average richenss
+                            alphaEstimates %>% median%>% round %>% format(big.mark=","),
+                            " (",
+                            alphaEstimates %>% mean%>% round %>% format(big.mark=","),
+                            ")"
+                        ),
+                        paste0( # average shannon
+                            shannonEstimates %>% median%>% signif (3),
+                            " (",
+                            shannonEstimates %>% mean%>% signif (3),
+                            ")"
+                        )
+                    )
+        return(column)
+    }
+
+# 2. Data prep
+    # get data
+        ps16<-readRDS(file=file.path(path, "Outputs", "ps16.RDS"))
+        ps23<-readRDS(file=file.path(path, "Outputs", "ps23.RDS"))
+        btab<-readRDS(file=file.path(path, "Outputs", "btab.RDS"))
+
+
+# 3.gllvm 23s
+        #functions
+
+
+            GetGllvmInputs<-function(ps) {
+                ps_phylum_ra<-ps %>% tax_glom(taxrank="Rank_3") %>% transform_sample_counts(., function(x) x/sum(x))      
+                abunds<-otu_table(ps_phylum_ra) %>% 
+                    as("matrix") %>% 
+                    t
+                colnames(abunds)<-tax_table(ps_phylum_ra)[,3] %>% as("vector") #give taxnames
+                env<-sample_data(ps_phylum_ra) %>% 
+                    as("data.frame") %>%  
+                    mutate_if( is.character,as_factor) %>%
+                    mutate  (pH=factor(pH, order = TRUE,  levels = c("Control pH", "Medium pH", "Low pH")) )  %>%
+                    mutate (pH=fct_recode(pH,"Con"="Control pH", "Med"="Medium pH", "Low"="Low pH")) %>%
+                    as_tibble %>%
+                    select(pH, Site, Sample, ARMS) %>%
+                    as.data.frame
+                return(list(abunds, env))
+            }
+            GetGllvmInputsClass<-function(ps) {
+                ps_phylum_ra<-ps %>% tax_glom(taxrank="Rank_4") %>% transform_sample_counts(., function(x) x/sum(x))      
+                abunds<-otu_table(ps_phylum_ra) %>% 
+                    as("matrix") %>% 
+                    t
+                colnames(abunds)<-tax_table(ps_phylum_ra)[,4] %>% as("vector") #give taxnames
+                env<-sample_data(ps_phylum_ra) %>% 
+                    as("data.frame") %>%  
+                    mutate_if( is.character,as_factor) %>%
+                    mutate  (pH=factor(pH, order = TRUE,  levels = c("Con", "Med", "Low")) )  %>%
+                    as_tibble %>%
+                    select(pH, Site, Sample) %>%
+                    as.data.frame
+                return(list(abunds, env))
+            }
+            MakeGllvmOutputPlot<-function(ft) {
+                confs<-confint(ft, level = 0.95) %>% as.data.frame
+                confs$param<-rownames(confs)
+                confs<-confs %>% as_tibble %>%
+                            filter(str_detect(param, "^Xcoef.pH.L:"))
+                gllvmEffects<-cbind(ft$params$Xcoef[,1], confs)
+                colnames(gllvmEffects)<-c("estimate", "lower", "upper", "param")
+                plot<-gllvmEffects %>%
+                    as.data.frame %>%
+                    filter(sign(lower)==sign(upper)) %>%
+                    rownames_to_column("Phylum") %>%
+                    mutate(Phylum=fct_reorder(Phylum, estimate))  %>%
+                    ggplot(aes(y=Phylum)) +
+                        geom_segment(aes(y=Phylum, yend=Phylum,x=0, xend=estimate, color=abs(estimate)), size=5) +
+                        #xlim(-3, 3) +
+                        geom_vline(aes(xintercept=0)) +
+                        geom_errorbar(aes(xmin = lower, xmax = upper), width = 0.8)+
+                        viridis::scale_color_viridis(option="plasma")
+                return(plot)
+            }
+        # whole arms
+                GllvmInputsWholeARMS<-ps16 %>% prune_samples(!sample_data(.)$Sample %in% c("Tethys Sponge Microbiome", "Halisarca Sponge Microbiome"), .) %>% prune_taxa(taxa_sums(.)>1, .) %>% GetGllvmInputs
+
+                GllvmInputsWholeARMS[[2]] <-GllvmInputsWholeARMS[[2]] %>%
+                    mutate  (Sample=factor(Sample,  levels = c("Environmental Microbiome", "Photosynthetic Community Microbiome", "Holobiont Community Microbiome"))) %>%
+                    mutate (Sample=fct_recode(Sample,"Env"="Environmental Microbiome", "Pho"="Photosynthetic Community Microbiome", "Holo"="Holobiont Community Microbiome"))
+                set.seed(10)
+                ftNullwa <- gllvm::gllvm(y=GllvmInputsWholeARMS[[1]], X=select(GllvmInputsWholeARMS[[2]], Sample), formula= ~Sample, family = "negative.binomial", num.lv = 0, sd.errors=TRUE,control.start=list(n.init=1))
+                set.seed(10)        
+                ftwa<- gllvm::gllvm(y=GllvmInputsWholeARMS[[1]], X=GllvmInputsWholeARMS[[2]], formula= ~ pH+Sample, family = "negative.binomial", num.lv = 1, sd.errors=TRUE,control.start=list(n.init=1))
+                par(mfrow = c(3, 2), mar = c(4, 4, 2, 1))
+                plot(ftwa, var.colours=1)
+                dev.off()
+
+            anova(ftNullwa, ftwa)
+            (1 - gllvm::getResidualCov(ftwa)$trace/gllvm::getResidualCov(ftNullwa)$trace)*100
+
+            gllvm::coefplot(ftwa,cex.ylab = 0.5, mar=c(4,10,2,1), which.Xcoef=c(1, 4, 7))
+
+            WAgllvmplot<-MakeGllvmOutputPlot(ftwa)
+
+            confs<-confint(ftwa, level = 0.95) %>% as.data.frame
+            confs$param<-rownames(confs)
+            names(confs)<-c("lwr", "upr", "param")
+            confs<-confs %>% as_tibble %>%
+                        filter(str_detect(param, "^Xcoef.pH.L") | str_detect(param, "^Xcoef.Sample")) %>%
+                        mutate(parameter=unlist(lapply(str_split(param, pattern=":"), '[[', 1))) %>%
+                        mutate(parameter=unlist(lapply(str_split(parameter, pattern="coef."), '[[', 2))) %>%
+                        mutate(Phylum=unlist(lapply(str_split(param, pattern=":"), '[[', 2)))  %>%
+                        filter(sign(upr)==sign(lwr))
+
+            gllvmEffects<-cbind(ftwa$params$Xcoef[,c(1, 3, 4)])#, 5, 7)])#, confs)
+            #colnames(gllvmEffects)<-c("estimate", "lower", "upper", "param")
+            gllvmEffects %>%
+                as.data.frame %>%
+                #filter(sign(lower)==sign(upper)) %>%
+                rownames_to_column("Phylum") %>%
+                mutate(Phylum=fct_reorder(Phylum, pH.L))  %>%
+                pivot_longer(cols= !Phylum, names_to="parameter", values_to="estimate") %>%
+                mutate(PhyPar=paste0(Phylum, parameter)) %>%
+                filter(PhyPar%in%paste0(confs$Phylum, confs$parameter)) %>%
+                ggplot(aes(y=Phylum)) +
+                    geom_segment(aes(y=Phylum, yend=Phylum,x=0, xend=estimate, color=abs(estimate)), size=5) +
+                    #xlim(-3, 3) +
+                    geom_vline(aes(xintercept=0)) +
+                    facet_grid(~parameter) +
+                    geom_errorbar(data=confs, aes(xmin = lwr, xmax = upr, y=Phylum), width = 0.8)+
+                    viridis::scale_color_viridis(option="plasma")
+
+
+        #sponges
+
+            GllvmInputsSponges<-ps16 %>% prune_samples(sample_data(.)$Sample %in% c("Tethys Sponge Microbiome", "Halisarca Sponge Microbiome"), .) %>% prune_taxa(taxa_sums(.)>1, .) %>% GetGllvmInputs
+
+            criterias <- NULL
+            for(i in ( 0:5)){
+                fiti <- gllvm::gllvm(y=GllvmInputsSponges[[1]], X=GllvmInputsSponges[[2]], formula= ~ pH, row.eff= ~ (1|Site), family = "negative.binomial", num.lv = i, sd.errors=TRUE, control.start=list(n.init=5))
+                criterias[i + 1] <- summary(fiti)$AICc
+                names(criterias)[i + 1] = i
+            } # best for pH only model
+
+            set.seed(10)
+            ftsNull <- gllvm::gllvm(y=GllvmInputsSponges[[1]],  X=select(GllvmInputsSponges[[2]], Sample, Site), row.eff= ~ (1|Sample)+ (1|Site), family = "negative.binomial", sd.errors=TRUE, control.start=list(n.init=5))
+            set.seed(10)
+            fts <- gllvm::gllvm(y=GllvmInputsSponges[[1]], X=GllvmInputsSponges[[2]], formula= ~ pH, row.eff= ~ (1|Sample)+ (1|Site), family = "negative.binomial", sd.errors=TRUE, control.start=list(n.init=1))
+            par(mfrow = c(3, 2), mar = c(4, 4, 2, 1))
+            plot(fts, var.colours=1)
+            dev.off()
+
+            anova(ftsNull,fts)
+            
+        
+            (1 - gllvm::getResidualCov(fts)$trace/gllvm::getResidualCov(ftsNull)$trace)*100
+
+            gllvm::coefplot(fts,cex.ylab = 0.5, mar=c(4,10,2,1), which.Xcoef=c(1))
+
+        SpongeGllvmPlot<-MakeGllvmOutputPlot(fts)
+
+
+
+        #algae gene
+            GllvmInputs23<-GetGllvmInputs(ps23)
+            criterias <- NULL
+            for(i in ( 0:5)){
+                fiti <- gllvm::gllvm(y=GllvmInputs23[[1]], X=GllvmInputs23[[2]], formula= ~ pH, row.eff= ~ (1|Site), family = "negative.binomial", num.lv = i, sd.errors=TRUE)
+                criterias[i + 1] <- summary(fiti)$AICc
+                names(criterias)[i + 1] = i
+            }
+
+            ft23Null <- gllvm::gllvm(y=GllvmInputs23[[1]], X=select(GllvmInputs23[[2]], Site), row.eff= ~ (1|Site), family = "negative.binomial", num.lv = 2, sd.errors=TRUE)
+            gllvm::ordiplot(ft235, display="sites", s.colors =as.numeric(GllvmInputs23[[2]]$pH))
+                geom_point(aes)
+       
+            ft23 <- gllvm::gllvm(y=GllvmInputs23[[1]], X=GllvmInputs23[[2]], formula= ~ pH, row.eff= ~ (1|Site), family = "negative.binomial", num.lv = 2, sd.errors=TRUE)
+            par(mfrow = c(3, 2), mar = c(4, 4, 2, 1))
+            plot(ft23, var.colours=1)
+            dev.off()
+
+            anova(ft23Null,ft23)
+            (1 - gllvm::getResidualCov(ft23)$trace/gllvm::getResidualCov(ft23Null)$trace)*100
+
+            gllvm::coefplot(ft23, cex.ylab = 1, mar=c(4,10,2,1),  which.Xcoef=c(1))
+
+        AlgGllvmPlot<-MakeGllvmOutputPlot(ft23)
+
+
+
+
+
+    #
+
+grid.arrange(p1, p2
+egg::ggarrange(        Figs[[1]], Figs[[2]], Figs[[3]],Figs[[4]], Figs[[5]],
+                        widths = c(1,1,1) )
+
+
+
+
+SpongeGllvmPlot
+AlgGllvmPlot
+WAgllvmplot
+
+
+
+
+
+
+
+
+
+
+            GllvmInputs16<-ps16 %>% GetGllvmInputs
+
+            criterias <- NULL
+            for(i in ( 1:5)){
+                fiti <- gllvm::gllvm(y=GllvmInputsWholeARMS[[1]], X=GllvmInputsWholeARMS[[2]], formula= ~ pH, row.eff= ~ (1|Site), family = "negative.binomial", num.lv = i, sd.errors=TRUE)
+                criterias[i + 1] <- summary(fiti)$AICc
+                names(criterias)[i + 1] = i
+            } # best for pH only model
+
+            GllvmInputs16[[2]] <-GllvmInputs16[[2]] %>%
+                mutate  (Sample=factor(Sample,  levels = c("Environmental Microbiome", "Photosynthetic Community Microbiome", "Holobiont Community Microbiome", "Tethys Sponge Microbiome", "Halisarca Sponge Microbiome"))) %>%
+                mutate (Sample=fct_recode(Sample,"Env"="Environmental Microbiome", "Pho"="Photosynthetic Community Microbiome", "Holo"="Holobiont Community Microbiome", "Teth"="Tethys Sponge Microbiome", "Hali"="Halisarca Sponge Microbiome"))
+
+            ftNull16 <- gllvm::gllvm(y=GllvmInputs16[[1]], X=select(GllvmInputs16[[2]], Site, Sample), row.eff= ~ (1|Site)+ (1|Sample), family = "negative.binomial", num.lv = 0, sd.errors=TRUE)
+            ft16 <- gllvm::gllvm(y=GllvmInputs16[[1]], X=GllvmInputs16[[2]], formula= ~ pH , row.eff= ~ (1|Site) + (1|Sample), family = "negative.binomial", num.lv = 0, sd.errors=TRUE)
+            par(mfrow = c(3, 2), mar = c(4, 4, 2, 1))
+            plot(ft16, var.colours=1)
+            dev.off()
+
+            anova(ftNull16, ft16)
+            (1 - gllvm::getResidualCov(ft16)$trace/gllvm::getResidualCov(ftNull16)$trace)*100
+
+            gllvm::coefplot(ft16,cex.ylab = 0.5, mar=c(4,10,2,1), which.Xcoef=c(1))
+            gllvm::coefplot(ft16,cex.ylab = 0.5, mar=c(4,10,2,1), which.Xcoef=c(3,5,7))
+
+
+            confs16<-confint(ftwa, level = 0.95) %>% as.data.frame
+            confs16$param<-rownames(confs16)
+            confs16<-confs16 %>% as_tibble %>%
+                        filter(str_detect(param, "^Xcoef.pH.L"))
+            gllvmEffects<-cbind(ftwa$params$Xcoef[,1], confs16)
+            names(gllvmEffects)<-c("estimate", "lower", "upper", "param")
+            gllvmEffects %>%
+                filter(sign(lower)==sign(upper)) %>%
+                rownames_to_column("Phylum") %>%
+                mutate(Phylum=fct_reorder(Phylum, estimate))  %>%
+                ggplot(aes(y=Phylum)) +
+                    geom_segment(aes(y=Phylum, yend=Phylum,x=0, xend=estimate, color=abs(estimate)), size=5) +
+                    xlim(-3, 3) +
+                    geom_vline(aes(xintercept=0)) +
+                    viridis::scale_color_viridis(option="plasma")
