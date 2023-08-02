@@ -1123,25 +1123,48 @@
 
             AlgGeneChangePlot<-sigtab23_family %>% 
                 ggplot(., aes(x=Sample, y=Rank_7, fill= log2FoldChange)) + 
-                    geom_tile()+
-                    scale_fill_gradientn(name = expression(log[2]*"-"*fold~change), colours=c(bl, re), na.value = "grey"  ,limits = c(-30, 30)) +
-                    ylab("Family")+
-                    facet_wrap(~Rank_4)+
-                    theme(axis.text = element_text(size=10),
-                            axis.title.x=element_blank(),
-                            legend.position="none",
-                            panel.background=element_rect(fill="white", colour="black"))
+                    geom_tile(width=1) +
+                    scale_y_discrete(position = "right", limits=rev)+
+                    scale_x_discrete(labels=c("Benthic\nPhotosynthetic\nCommunity\nAlgae (23S)")) +
+                    scale_fill_gradientn(name = expression(atop(log[2]*"-"*fold, change)), colours=c(bl, re), na.value = "grey"  ,limits = c(-30, 30)) +
+                    facet_grid(Rank_3~., scales="free_y", space="free_y", switch="y") +
+                    theme_bw()+
+                    theme(  strip.text.y.left =element_text(angle=0, size=16, face="bold", color="black") ,
+                            axis.text.y.right = element_text(size=12),
+                            axis.text.x = element_text(size=16, face="bold", color="black"),
+                            axis.title=element_blank(),
+                            legend.title = element_text(size=14), 
+                            legend.text = element_text(size=12),
+                            legend.position = "none",
+                            legend.background = element_rect(size=0.5, linetype="solid", colour ="black"),
+                            strip.placement = "outside",
+                            strip.background=element_rect(fill="white", colour="black"),
+                            panel.grid=element_blank())
+                            #panel.background=element_rect(fill="white", colour="white"),
+                            #panel.border=element_rect(fill="white", colour="white"))
+
+
 
             BacGeneChangePlot<-rbind(sigtabEnv, sigtabHolo, sigtabPhoto, sigtabSponge) %>%
-                mutate(Sample=fct_relevel(Sample,c("Photosynthetic Community Microbiome", "Environmental Microbiome", "Holobiont Community Microbiome", "Sponge Microbiomes") )) %>%
+                mutate(Sample=fct_relevel(Sample,c( "Environmental Microbiome", "Holobiont Community Microbiome", "Photosynthetic Community Microbiome","Sponge Microbiomes") )) %>%
                 ggplot(., aes(x=Sample, y=Rank_3, fill= log2FoldChange)) + 
-                    geom_tile() +
-                    scale_fill_gradientn(name = expression(log[2]*"-"*fold~change), colours=c(bl, re), na.value = "grey"  ,limits = c(-30, 30)) +
-                    ylab("Phylum")+
-                    theme(axis.text = element_text(size=10),
-                            axis.title.x=element_blank(),
-                            panel.background=element_rect(fill="white", colour="black"))
-
+                    geom_tile(width=1) +
+                    scale_y_discrete(position = "left", limits=rev)+
+                    scale_x_discrete(labels=c("Sediment\nMicrobiome", "Benthic\nHolobiont\nCommunity\nMicrobiome", "Benthic\nPhotosynthetic\nCommunity\nMicrobiome", "Sponge\nMicrobiome")) +
+                    scale_fill_gradientn(name = expression(atop(log[2]*"-"*fold, change)), colours=c(bl, re), na.value = "grey"  ,limits = c(-30, 30)) +
+                    #facet_grid(Rank_3~., scales="free_y", space="free_y", switch="y") +
+                    theme_bw()+
+                    theme(  #strip.text.y.left =element_text(angle=0, size=16, face="bold", color="black") ,
+                            axis.text.y.left = element_text(angle=0, size=16, face="bold", color="black") ,
+                            axis.text.x = element_text(size=16, face="bold", color="black"),
+                            axis.title=element_blank(),
+                            legend.title = element_text(size=14), 
+                            legend.text = element_text(size=12),
+                            legend.position = c(1.15, 0.5),
+                            legend.background = element_rect(size=0.5, linetype="solid", colour ="black"),
+                            strip.placement = "outside",
+                            strip.background=element_rect(fill="white", colour="black"),
+                            panel.grid=element_blank())
 
         #data written to csv and modified based on literature review to group molecules.
             rbind(sigtabChemEnv, sigtabChemHolo, sigtabChemPhoto, sigtabChemSponge) %>%
@@ -1158,13 +1181,13 @@
                 ggplot(., aes(x=Sample, y=Figure_Compound_Name, fill= log2FoldChange)) + 
                     geom_tile(width=1) +
                     scale_y_discrete(position = "right", limits=rev)+
-                    scale_x_discrete(labels=function(x){gsub("\\s", "\n", x)}) +
+                    scale_x_discrete(labels=c("Sediment\nMetabolome", "Benthic\nHolobiont\nCommunity\nMetabolome", "Benthic\nPhotosynthetic\nCommunity\nMetabolome", "Sponge\nMetabolomes")) +
                     scale_fill_gradientn(name = expression(atop(log[2]*"-"*fold, change)), colours=c(bl, re), na.value = "grey"  ,limits = c(-30, 30)) +
                     facet_grid(class~., scales="free_y", space="free_y", switch="y") +
-                    #theme_bw()+
+                    theme_bw()+
                     theme(  strip.text.y.left =element_text(angle=0, size=16, face="bold", color="black") ,
                             axis.text.y.right = element_text(size=12),
-                            axis.text.x = element_text(size=16, face="bold"),
+                            axis.text.x = element_text(size=16, face="bold", color="black"),
                             axis.title=element_blank(),
                             legend.title = element_text(size=14), 
                             legend.text = element_text(size=12),
@@ -1179,7 +1202,7 @@
 
 
 
-        geneDeseqPlot<-egg::ggarrange(AlgGeneChangePlot, BacGeneChangePlot, nrow=2)#, labels=(c("A", "B")),
+        geneDeseqPlot<-egg::ggarrange(AlgGeneChangePlot, BacGeneChangePlot, nrow=2, labels=(c("A", "B")))
                                    # top="Figure S4: Heatmaps of Significant ESV Differential Abundance for all Sample Types")
 
         chemDeseqPlot<-egg::ggarrange(ChemChangePlot,
@@ -1279,10 +1302,13 @@ load(file=file.path(path, 'plottingEnvironment.RData'))
         CommunityDistinctnessPlot
     dev.off()
 
-    jpeg(file=file.path(path, "metaboliteChange"), height = 8.3, width = 13, units = 'in', res = 300)
+    jpeg(file=file.path(path, "metaboliteChange.jpeg"), height = 8.3, width = 13, units = 'in', res = 300)
         ChemChangePlot
     dev.off()
 
+    jpeg(file=file.path(path, "geneDeseqPlot.jpeg"), height = 8.3, width = 13, units = 'in', res = 300)
+        geneDeseqPlot
+    dev.off()
 #supplementarys
     #richness
     jpeg(file=file.path(path, "FigS1.jpeg"), height = 8.3, width = 13, units = 'in', res = 300)
