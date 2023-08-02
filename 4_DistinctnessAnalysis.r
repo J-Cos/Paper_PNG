@@ -141,7 +141,7 @@
                         strip.background = element_rect(fill = "white"),
                         #panel.border = element_blank(),
                         strip.text = element_text(size=20, color="black", face="bold"),
-                        axis.text.x = element_text(face="bold", size=16, angle=0, hjust=0.5),
+                        axis.text.x = element_text(face="bold", size=16, angle=0, hjust=0.5, color="black"),
                         axis.text.y = element_text(face="bold", size=16, angle=0, hjust=0.5),
                         axis.title.y = element_text(face="bold", size=16),
                         legend.text = element_text(face="bold", size=16),
@@ -163,7 +163,7 @@
         if (type=="Community"){
             p<-p+labs(   #title="Figure 4: Multiomic Distinctness",
                     #subtitle="",
-                    y="Percentage distinct\nto holobiont community", 
+                    y="Percentage distinct to\nbenthic holobiont community", 
                     #x="pH Regime (control n=6, medium n=3, low n=5)"
                     ) 
         } else if (type =="Organism") {
@@ -187,7 +187,7 @@
 #make plots
     p1<-PlotDistinctness(DistinctnessTibble_CommunityMicrobiome, type="Community", significant=TRUE) + 
         theme(axis.text.x = element_blank()) + 
-        facet_wrap(~Individual_Holobiont, labeller = labeller(Individual_Holobiont = c("Holobiont Community Microbiome" = "Exact Sequence Variants")))
+        facet_wrap(~Individual_Holobiont, labeller = labeller(Individual_Holobiont = c("Holobiont Community Microbiome" = "Amplicon Sequence Variants")))
     p2<-PlotDistinctness(DistinctnessTibble_CommunityMetabolome, type="Community", significant=TRUE) + 
         theme(axis.text.x = element_blank(), axis.text.y=element_blank() , axis.title.y=element_blank())+
         facet_wrap(~Individual_Holobiont, labeller = labeller(Individual_Holobiont = c("Holobiont Community Metabolome" = "Metabolites")))
@@ -253,7 +253,7 @@
             geom_boxplot(aes(x=pH, y=RichnessHolobiontOverlapping))
 
 #save figure
-    jpeg(file.path(path, "Outputs","Fig4.jpeg"), height = 8.3, width = 11.7, units = 'in', res = 300)
+    jpeg(file.path(path,"DistinctnessBoxplot.jpeg"), height = 8.3, width = 11.7, units = 'in', res = 300)
         egg::ggarrange(p1, p2, p3, p4, labels=c("A", "B", "C", "D"), label.args = list(gp=grid::gpar(face="bold"), hjust=-2, vjust=2))
     dev.off()
 
