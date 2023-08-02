@@ -212,9 +212,9 @@ ps16sponges<-prune_samples(sample_data(ps16)$Sample %in% c("Tethys Sponge Microb
                 geom_treemap_text(alpha = 0.25, colour = "black", place = "centre",
                                 size = 15, grow = TRUE, min.size=minText) +
                 facet_grid(pH~sample_Sample,  labeller = labeller(sample_Sample = 
-                                                    c( "Environmental Microbiome"="Environmental\nMicrobiome\n", 
-                                                    "Holobiont Community Microbiome"= "Holobiont\nCommunity\nMicrobiome", 
-                                                    "Photosynthetic Community Microbiome"="Photosynthetic\nCommunity\nMicrobiome")), 
+                                                    c( "Environmental Microbiome"="Sediment\nMicrobiome\n", 
+                                                    "Holobiont Community Microbiome"= "Benthic\nHolobiont\nCommunity\nMicrobiome", 
+                                                    "Photosynthetic Community Microbiome"="Benthic\nPhotosynthetic\nCommunity\nMicrobiome")), 
                                                     switch="y") +
                 theme(legend.position="none")+
                 geom_treemap_subgroup_text(place = "centre", grow = TRUE,
@@ -222,7 +222,7 @@ ps16sponges<-prune_samples(sample_data(ps16)$Sample %in% c("Tethys Sponge Microb
                                     fontface = "italic", angle=45, min.size=minText )+
                 scale_fill_viridis(option="turbo", discrete=TRUE)+
                 theme(  strip.background = element_blank(),
-                        strip.text.y.left =  element_text(color="black", face="bold", size=20),
+                        strip.text.y =  element_blank(),
                         strip.text.x = element_text(color="black", face="bold", size=20))
 
     treemaps23s<-    p$data %>%
@@ -235,7 +235,7 @@ ps16sponges<-prune_samples(sample_data(ps16)$Sample %in% c("Tethys Sponge Microb
                 geom_treemap_text(alpha = 0.25, colour = "black", place = "centre",
                                 size = 15, grow = TRUE, min.size=minText) +
                 facet_grid(pH~sample_Sample, labeller = labeller(sample_Sample = 
-                                                    c( "Photosynthetic Community Algae"="Photosynthetic\nCommunity\n")),
+                                                    c( "Photosynthetic Community Algae"="Benthic\nPhotosynthetic\nCommunity\n")),
                                                     switch="y") +
                 theme(legend.position="none")+
                 geom_treemap_subgroup_text(place = "centre", grow = TRUE,
@@ -271,12 +271,12 @@ ps16sponges<-prune_samples(sample_data(ps16)$Sample %in% c("Tethys Sponge Microb
 #arranging!!
 #DescriptiveFigure<-egg::ggarrange(treemaps16s, boxplotsARMS,treemaps23s,boxplotsAlg, treemapsSponges,boxplotsSponge, widths = c(3,1, 1,1, 2,1),
 #                                    top="Figure 3: Descriptive Figure of Metabarcoding Fraction Compositions and Estimated Richnesses")
-DescriptiveFigure<-egg::ggarrange(#treemaps23s, 
-                                    treemaps16s, treemapsSponges, widths = c(3, 2),
+DescriptiveFigure<-egg::ggarrange(treemaps23s, 
+                                    treemaps16s, treemapsSponges, widths = c(1,3, 2),
                                     #top="Figure 3: Descriptive Figure of Metabarcoding Fraction Compositions", 
                                     labels=c())
 #theme(plot.margin = margin(0.1,0.1,2,0.1, "cm")) 
-    jpeg(file=file.path(path, "Fig3.jpeg"), height = 8.3, width = 13, units = 'in', res = 300)
+    jpeg(file=file.path(path, "DescriptiveFigure.jpeg"), height = 8.3, width = 13, units = 'in', res = 300)
         DescriptiveFigure
     dev.off()
 
