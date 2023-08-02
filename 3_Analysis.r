@@ -881,7 +881,7 @@
                                                 ggtitle(paste0("Community Metabolome Composition\n(Stress=", signif(ordwachem$stress,3),")")) +
                                                 pHcolScale +
                                                 pHfillScale +
-                                                scale_shape_manual(labels=c('Environmental', 'Holobiont Community', "Photosynthetic Community"), values = c(0,1,2)) +
+                                                scale_shape_manual(labels=c('Sediment', 'Benthic Holobiont Community', "Benthic Photosynthetic Community"), values = c(0,1,2)) +
                                                 scale_color_manual(labels=c('Control pH', 'Medium pH', "Low pH"), values = c("green", "yellow", "orange")) +
                                                 theme(  strip.background = element_rect(fill = "white"),
                                                         #legend.position=c(0.875, 0.14),
