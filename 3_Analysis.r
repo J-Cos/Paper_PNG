@@ -362,7 +362,7 @@
             write.csv(signif(bettamod1Table,2), file=file.path(path, "Outputs", "MetabarcodingRichnessModel.csv"))
         #shannon model
             #dv23<-ps23 %>% tax_glom(taxrank="Rank_3") %>% DivNet::divnet(., formula = ~pH + Site)
-            dv16<-ps16 %>% c%>% DivNet::divnet(., formula = NULL) #~Sample*pH + Site) # changed to null to treat all samples as independent observations
+            dv16<-ps16 %>% tax_glom(taxrank="Rank_4")%>% DivNet::divnet(., formula =  ~Sample*pH + Site) # changed to null to treat all samples as independent observations
 
             #shannons <- dv23$shannon %>% summary %>% rbind(dv16$shannon %>% summary )
             shannons <- dv16$shannon %>% summary #changed from merged as 23s removed
@@ -549,9 +549,9 @@
                 geom_boxplot(aes(y=estimate, x=pH, fill=pH)) +
                 pHfillScale +
                 facet_grid(~Sample, labeller = labeller(Sample = 
-                                                    c(  "Environmental Microbiome"= "Environmental\nMicrobiome\n", 
-                                                        "Holobiont Community Microbiome" = "Holobiont\nCommunity\nMicrobiome", 
-                                                        "Photosynthetic Community Microbiome"="Photosynthetic\nCommunity\nMicrobiome", 
+                                                    c(  "Environmental Microbiome"= "Sediment\nMicrobiome\n", 
+                                                        "Holobiont Community Microbiome" = "Benthic\nHolobiont\nCommunity\nMicrobiome", 
+                                                        "Photosynthetic Community Microbiome"="Benthic\nPhotosynthetic\nCommunity\nMicrobiome", 
                                                         "Halisarca Sponge Microbiome" ="Halisarca\nSponge\nMicrobiome", 
                                                         "Tethys Sponge Microbiome"="Tethya\nSponge\nMicrobiome"#,
                                                         #"Photosynthetic Community Algae" = "Photosynthetic\nCommunity"
@@ -577,9 +577,9 @@
                 geom_boxplot(aes(y=estimate, x=pH, fill=pH)) +
                 pHfillScale +
                 facet_grid(~Sample, labeller = labeller(Sample = 
-                                                    c(  "Environmental Metabolome"= "Environmental\nMetabolome\n", 
-                                                        "Holobiont Community Metabolome" = "Holobiont\nCommunity\nMetabolome", 
-                                                        "Photosynthetic Community Metabolome"="Photosynthetic\nCommunity\nMetabolome", 
+                                                    c(  "Environmental Metabolome"= "Sediment\nMetabolome\n", 
+                                                        "Holobiont Community Metabolome" = "Benthic\nHolobiont\nCommunity\nMetabolome", 
+                                                        "Photosynthetic Community Metabolome"="Benthic\nPhotosynthetic\nCommunity\nMetabolome", 
                                                         "Halisarca Sponge Metabolome" ="Halisarca\nSponge\nMetabolome", 
                                                         "Tethys Sponge Metabolome"="Tethya\nSponge\nMetabolome"))) +
                 ggtitle("Metabolite Estimated Richness") +
