@@ -3,6 +3,7 @@
     
     library(tidyverse)
     library(ggplot2)
+    library(ggtext)
     library(phyloseq)
     library(breakaway)
     library(DivNet)
@@ -549,18 +550,18 @@
                 geom_boxplot(aes(y=estimate, x=pH, fill=pH)) +
                 pHfillScale +
                 facet_grid(~Sample, labeller = labeller(Sample = 
-                                                    c(  "Environmental Microbiome"= "Sediment\nMicrobiome\n", 
-                                                        "Holobiont Community Microbiome" = "Benthic\nHolobiont\nCommunity\nMicrobiome", 
-                                                        "Photosynthetic Community Microbiome"="Benthic\nPhotosynthetic\nCommunity\nMicrobiome", 
-                                                        "Halisarca Sponge Microbiome" ="Halisarca\nSponge\nMicrobiome", 
-                                                        "Tethys Sponge Microbiome"="Tethya\nSponge\nMicrobiome"#,
+                                                    c(  "Environmental Microbiome"= "Sediment<br>Microbiome\n", 
+                                                        "Holobiont Community Microbiome" = "Benthic<br>Holobiont<br>Community<br>Microbiome", 
+                                                        "Photosynthetic Community Microbiome"="Benthic<br>Photosynthetic<br>Community<br>Microbiome", 
+                                                        "Halisarca Sponge Microbiome" ="*Halisarca sp.*<br>Sponge<br>Microbiome", 
+                                                        "Tethys Sponge Microbiome"="*Tethya sp.*<br>Sponge<br>Microbiome"#,
                                                         #"Photosynthetic Community Algae" = "Photosynthetic\nCommunity"
                                                         ))) +
                 ggtitle("Sequence Estimated Richness") +
                 theme(  strip.background = element_rect(fill = "white"),
                         #panel.border = element_rect(colour = "black", fill = "white"),
                         legend.position="none",
-                        strip.text.x = element_text(color="black", face="bold", size=8),
+                        strip.text.x = ggtext::element_markdown(color="black", face="bold", size=8),
                         axis.text.x = element_blank(), 
                         axis.title = element_blank(), 
                         plot.title = element_text(size = 20, face = "bold", hjust=0.5),
@@ -577,16 +578,16 @@
                 geom_boxplot(aes(y=estimate, x=pH, fill=pH)) +
                 pHfillScale +
                 facet_grid(~Sample, labeller = labeller(Sample = 
-                                                    c(  "Environmental Metabolome"= "Sediment\nMetabolome\n", 
-                                                        "Holobiont Community Metabolome" = "Benthic\nHolobiont\nCommunity\nMetabolome", 
-                                                        "Photosynthetic Community Metabolome"="Benthic\nPhotosynthetic\nCommunity\nMetabolome", 
-                                                        "Halisarca Sponge Metabolome" ="Halisarca\nSponge\nMetabolome", 
-                                                        "Tethys Sponge Metabolome"="Tethya\nSponge\nMetabolome"))) +
+                                                    c(  "Environmental Metabolome"= "Sediment<br>Metabolome\n", 
+                                                        "Holobiont Community Metabolome" = "Benthic<br>Holobiont<br>Community<br>Metabolome", 
+                                                        "Photosynthetic Community Metabolome"="Benthic<br>Photosynthetic<br>Community<br>Metabolome", 
+                                                        "Halisarca Sponge Metabolome" ="*Halisarca sp.*<br>Sponge<br>Metabolome", 
+                                                        "Tethys Sponge Metabolome"="*Tethya sp.*<br>Sponge<br>Metabolome"))) +
                 ggtitle("Metabolite Estimated Richness") +
                 theme(  strip.background = element_rect(fill = "white"),
                         #panel.border = element_rect(colour = "black", fill = "white"),
                         legend.position="none",
-                        strip.text.x = element_text(color="black", face="bold", size=8),
+                        strip.text.x = ggtext::element_markdown(color="black", face="bold", size=8),
                         axis.text.x = element_blank(), 
                         axis.title = element_blank(), 
                         plot.title = element_text(size = 20, face = "bold", hjust=0.5),
@@ -937,12 +938,12 @@
                                                 ggtitle(paste0("Sponge Metabolome Composition\n(Stress=", signif(ordSpongechem$stress,3),")")) +
                                                 pHcolScale +
                                                 pHfillScale +
-                                                scale_shape_manual(values = c(3,4), labels=c('Halisarca Sp.', 'Tethya Sp.')) +
+                                                scale_shape_manual(values = c(3,4), labels=c('*Halisarca Sp.*', '*Tethya Sp.*')) +
                                                 theme(  strip.background = element_rect(fill = "white"),
                                                         #legend.position=c(0.875, 0.12),
                                                         legend.key.size = unit(0.5, 'cm'), #change legend key size
                                                         legend.title = element_blank(), #change legend title font size
-                                                        legend.text = element_text(size=12, face="bold"), #change legend text font size
+                                                        legend.text = ggtext::element_markdown(size=12, face="bold"), #change legend text font size
                                                         #panel.border = element_rect(colour = "black", fill = "white"),
                                                         strip.text = element_text(size=14, color="black", face="bold"),
                                                         axis.text = element_blank(), 
