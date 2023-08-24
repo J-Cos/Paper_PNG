@@ -1130,13 +1130,13 @@
                     scale_fill_gradientn(name = expression(atop(log[2]*"-"*fold, change)), colours=c(bl, re), na.value = "grey"  ,limits = c(-30, 30)) +
                     facet_grid(Rank_3~., scales="free_y", space="free_y", switch="y") +
                     theme_bw()+
-                    theme(  strip.text.y.left =element_text(angle=0, size=16, face="bold", color="black") ,
+                    theme(  strip.text.y.left =element_text(angle=0, size=16, face="bold", color="black", margin = margin(0,0.8,0,0.8, "cm")) ,
                             axis.text.y.right = element_text(size=12),
                             axis.text.x = element_text(size=16, face="bold", color="black"),
                             axis.title=element_blank(),
                             legend.title = element_text(size=14), 
                             legend.text = element_text(size=12),
-                            legend.position = "none",
+                            legend.position = c(2.5,0.5),
                             legend.background = element_rect(size=0.5, linetype="solid", colour ="black"),
                             strip.placement = "outside",
                             strip.background=element_rect(fill="white", colour="black"),
@@ -1150,24 +1150,38 @@
                 mutate(Sample=fct_relevel(Sample,c( "Environmental Microbiome", "Holobiont Community Microbiome", "Photosynthetic Community Microbiome","Sponge Microbiomes") )) %>%
                 ggplot(., aes(x=Sample, y=Rank_3, fill= log2FoldChange)) + 
                     geom_tile(width=1) +
-                    scale_y_discrete(position = "left", limits=rev)+
+                    scale_y_discrete(position = "right", limits=rev)+
                     scale_x_discrete(labels=c("Sediment\nMicrobiome", "Benthic\nHolobiont\nCommunity\nMicrobiome", "Benthic\nPhotosynthetic\nCommunity\nMicrobiome", "Sponge\nMicrobiome")) +
                     scale_fill_gradientn(name = expression(atop(log[2]*"-"*fold, change)), colours=c(bl, re), na.value = "grey"  ,limits = c(-30, 30)) +
-                    #facet_grid(Rank_3~., scales="free_y", space="free_y", switch="y") +
+                    facet_grid(Rank_3~., scales="free_y", space="free_y", switch="y") +
                     theme_bw()+
-                    theme(  #strip.text.y.left =element_text(angle=0, size=16, face="bold", color="black") ,
-                            axis.text.y.left = element_text(angle=0, size=16, face="bold", color="black") ,
+                    theme(  strip.text.y.left =element_text(angle=0, size=16, face="bold", color="black", margin = margin(0,0.2,0,0.2, "cm")) ,
+                            axis.text.y.right = element_blank(),
+                            axis.ticks.y.right = element_blank(),
                             axis.text.x = element_text(size=16, face="bold", color="black"),
                             axis.title=element_blank(),
                             legend.title = element_text(size=14), 
                             legend.text = element_text(size=12),
-                            legend.position = c(1.15, 0.5),
+                            legend.position = "none",
                             legend.background = element_rect(size=0.5, linetype="solid", colour ="black"),
                             strip.placement = "outside",
                             strip.background=element_rect(fill="white", colour="black"),
                             panel.grid=element_blank())
 
         #data written to csv and modified based on literature review to group molecules.
+
+        deseqMetabList<-list("Environmental Metabolome"=sigtabChemEnv, "Holobiont Community Metabolome"=sigtabChemHolo, "Photosynthetic Community Metabolome"= sigtabChemPhoto, "Sponge Metabolome"=sigtabChemSponge)
+        df<-data.frame(Fraction=rep(NA,4), ProportionChanging=rep(NA, 4), ProportionIncreasing=rep(NA, 4))
+        for (i in 1:length(list)) {
+            if (names(list[i])=="Sponge Metabolome") {names<-c("Tethys Sponge Metabolome", "Halisarca Sponge Metabolome")} else {names<-names(list[i])}
+            sigtab<-list[[i]]
+            df$Fraction[i]<-names(list[i])
+            df$ProportionChanging[i]<-round(length(sigtab$log2FoldChange)/length(taxa_names(btab %>% prune_samples(sample_data(.)$Sample %in% names, .) %>% prune_taxa(taxa_sums(.)>1, .)))*100, digits=1)
+            df$ProportionIncreasing[i]<-round(sum(sigtab$log2FoldChange>0)/length(sigtab$log2FoldChange)*100, digits=1)
+        }
+        write.csv(df, "Outputs/UnannotatedMetabolomeStats.csv")
+
+
             rbind(sigtabChemEnv, sigtabChemHolo, sigtabChemPhoto, sigtabChemSponge) %>%
                 '['(complete.cases(.),) %>%
                 write.csv(file.path(path, "Outputs", "DeseqChems.csv"))
@@ -1203,8 +1217,18 @@
 
 
 
-        geneDeseqPlot<-egg::ggarrange(AlgGeneChangePlot, BacGeneChangePlot, nrow=2, labels=(c("A", "B")))
-                                   # top="Figure S4: Heatmaps of Significant ESV Differential Abundance for all Sample Types")
+        #geneDeseqPlot<-egg::ggarrange(AlgGeneChangePlot, BacGeneChangePlot, nrow=2, labels=(c("A", "B")))
+        jpeg(file=file.path(path, "geneDeseqPlot.jpeg"), height = 13, width = 13, units = 'in', res = 300)
+            cowplot::ggdraw() +
+                cowplot::draw_plot(AlgGeneChangePlot, x=0.01, y=0.6, width=0.6, height=0.38)+
+                cowplot::draw_plot(BacGeneChangePlot, x=0.01, y=0, width=0.99, height=0.59)+
+                cowplot::draw_plot_label(   label = c("A", "B"), 
+                                        size = 16, 
+                                        fontface="bold",
+                                        x = c(0.01, 0.01), 
+                                        y = c(1, 0.61))        
+        dev.off()
+
 
         chemDeseqPlot<-egg::ggarrange(ChemChangePlot,
                                     top="Figure 4: Heatmaps of Significant Metabolomic Differential Abundance for all Sample Types")
