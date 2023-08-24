@@ -1319,7 +1319,7 @@ load(file=file.path(path, 'plottingEnvironment.RData'))
 
 ###############
 
-    jpeg(file=file.path(path, "map"), height = 8.3, width = 16, units = 'in', res = 300)
+    jpeg(file=file.path(path, "map.jpeg"), height = 8.3, width = 16, units = 'in', res = 300)
                 egg::ggarrange(maps[[1]], maps[[2]], nrow=1)
     dev.off()
 
