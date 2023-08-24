@@ -4,6 +4,7 @@
     library(phyloseq)
     library(tidyverse)
     library(ggplot2)
+    library(ggtext)
     library(treemapify)
     library(viridis)
 
@@ -256,8 +257,8 @@ ps16sponges<-prune_samples(sample_data(ps16)$Sample %in% c("Tethys Sponge Microb
                 geom_treemap_text(alpha = 0.25, colour = "black", place = "centre",
                                 size = 15, grow = TRUE, min.size=minText) +
                 facet_grid(pH~sample_Sample, labeller = labeller(sample_Sample = 
-                                                    c(  "Tethys Sponge Microbiome" = "Tethya\nSponge\nMicrobiome",
-                                                        "Halisarca Sponge Microbiome" = "Halisarca\nSponge\nMicrobiome"))) +
+                                                    c(  "Tethys Sponge Microbiome" = "*Tethya sp.*<br>Sponge<br>Microbiome",
+                                                        "Halisarca Sponge Microbiome" = "*Halisarca sp.*<br>Sponge<br>Microbiome"))) +
                 theme(legend.position="none")+
                 geom_treemap_subgroup_text(place = "centre", grow = TRUE,
                                     colour = "white",
@@ -265,7 +266,7 @@ ps16sponges<-prune_samples(sample_data(ps16)$Sample %in% c("Tethys Sponge Microb
                 scale_fill_viridis(option="turbo", discrete=TRUE)+
                 theme(  strip.background = element_blank(),
                         strip.text.y =  element_blank(),
-                        strip.text.x = element_text( color="black", face="bold", size=20))
+                        strip.text.x = ggtext::element_markdown( color="black", face="bold", size=20))
 
 
 #arranging!!
